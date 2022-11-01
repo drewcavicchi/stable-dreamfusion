@@ -7,5 +7,6 @@ tmp*
 data/
 trial*/
 .vs/
-
+venv_dreamfusion/
+outputs/
 TOKEN
