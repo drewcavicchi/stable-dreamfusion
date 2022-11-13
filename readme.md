@@ -33,7 +33,8 @@ git clone https://github.com/ashawkey/stable-dreamfusion.git
 cd stable-dreamfusion
 ```
 
-**Important**: To download the Stable Diffusion model checkpoint, you should provide your [access token](https://huggingface.co/settings/tokens). You could choose either of the following ways:
+**Important**: To download the Stable Diffusion model checkpoint, you should visit the [model card](https://huggingface.co/runwayml/stable-diffusion-v1-5) to accept the conditions, and provide your [access token](https://huggingface.co/settings/tokens). 
+You could choose either of the following ways:
 * Run `huggingface-cli login` and enter your token.
 * Create a file called `TOKEN` under this directory (i.e., `stable-dreamfusion/TOKEN`) and copy your token into it.
 
@@ -80,7 +81,7 @@ python main.py --text "a hamburger" --workspace trial -O
 # we also support negative text prompt now:
 python main.py --text "a rose" --negative "red" --workspace trial -O
 
-# if the above command fails to generate things (learns an empty scene), maybe try:
+# if the above command fails to generate meaningful things (learns an empty scene), maybe try:
 # 1. disable random lambertian shading, simply use albedo as color:
 python main.py --text "a hamburger" --workspace trial -O --albedo_iters 10000 # i.e., set --albedo_iters >= --iters, which is default to 10000
 # 2. use a smaller density regularization weight:

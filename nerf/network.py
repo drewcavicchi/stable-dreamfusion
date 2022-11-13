@@ -10,6 +10,37 @@ from encoding import get_encoder
 
 from .utils import safe_normalize
 
+class ResBlock(nn.Module):
+    def __init__(self, dim_in, dim_out, bias=True):
+        super().__init__()
+        self.dim_in = dim_in
+        self.dim_out = dim_out
+
+        self.dense = nn.Linear(self.dim_in, self.dim_out, bias=bias)
+        self.norm = nn.LayerNorm(self.dim_out)
+        self.activation = nn.SiLU()
+
+        if self.dim_in != self.dim_out:
+            self.skip = nn.Linear(self.dim_in, self.dim_out, bias=False)
+        else:
+            self.skip = None
+
+    def forward(self, x):
+        # x: [B, C]
+        identity = x
+
+        out = self.dense(x)
+        out = self.norm(out)
+
+        if self.skip is not None:
+            identity = self.skip(identity)
+
+        out += identity
+        out = self.activation(out)
+
+        return out
+
+
 class MLP(nn.Module):
     def __init__(self, dim_in, dim_out, dim_hidden, num_layers, bias=True):
         super().__init__()
@@ -20,15 +51,19 @@ class MLP(nn.Module):
 
         net = []
         for l in range(num_layers):
-            net.append(nn.Linear(self.dim_in if l == 0 else self.dim_hidden, self.dim_out if l == num_layers - 1 else self.dim_hidden, bias=bias))
+            if l != num_layers - 1:
+                net.append(ResBlock(self.dim_in if l == 0 else self.dim_hidden, self.dim_hidden, bias=bias))
+            else:
+                net.append(nn.Linear(self.dim_hidden, self.dim_out, bias=bias))
 
         self.net = nn.ModuleList(net)
+        
     
     def forward(self, x):
+
         for l in range(self.num_layers):
             x = self.net[l](x)
-            if l != self.num_layers - 1:
-                x = F.relu(x, inplace=True)
+            
         return x
 
 
@@ -95,7 +130,7 @@ class NeRFNetwork(NeRFRenderer):
             0.5 * (dz_pos - dz_neg) / epsilon
         ], dim=-1)
 
-        return normal
+        return -normal
     
     def normal(self, x):
 
@@ -138,7 +173,7 @@ class NeRFNetwork(NeRFRenderer):
             normal[torch.isnan(normal)] = 0
 
             # lambertian shading
-            lambertian = ratio + (1 - ratio) * (normal @ -l).clamp(min=0) # [N,]
+            lambertian = ratio + (1 - ratio) * (normal @ l).clamp(min=0) # [N,]
 
             if shading == 'textureless':
                 color = lambertian.unsqueeze(-1).repeat(1, 3)
